@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSONPlaceholder Requests</title>
+    <link href="./tailwind.css" rel="stylesheet" />
+  </head>
+  <body class="mx-auto mt-6 max-w-4xl px-4 pb-10 font-sans text-gray-900 sm:mt-10">
+    <main>
+      <h1 class="mb-2 text-3xl font-bold">JSONPlaceholder Requests</h1>
+     
+
+      <section class="mb-6 border-b border-gray-200 pb-6">
+        <h2 class="mb-2 text-xl font-bold">Task 1: GET</h2>
+        <div class="flex flex-wrap gap-2">
+          <button data-task="get-all" class="rounded border border-gray-400 bg-white px-3 py-2 hover:bg-gray-100 disabled:opacity-50" type="button">Fetch all posts</button>
+          <button data-task="get-one" class="rounded border border-gray-400 bg-white px-3 py-2 hover:bg-gray-100 disabled:opacity-50" type="button">Fetch post 5</button>
+        </div>
+        <pre id="out-get" class="mt-3 max-h-80 overflow-auto rounded border border-gray-300 bg-gray-50 p-3 text-sm whitespace-pre-wrap">No request yet.</pre>
+      </section>
+
+      <section class="mb-6 border-b border-gray-200 pb-6">
+        <h2 class="mb-2 text-xl font-bold">Task 2: POST</h2>
+        <p class="mb-2 text-sm text-gray-600">Creates a new post. The response is also logged to the browser console.</p>
+        <button data-task="post" class="rounded border border-gray-400 bg-white px-3 py-2 hover:bg-gray-100 disabled:opacity-50" type="button">Create post</button>
+        <pre id="out-post" class="mt-3 overflow-auto rounded border border-gray-300 bg-gray-50 p-3 text-sm whitespace-pre-wrap">No request yet.</pre>
+      </section>
+
+      <section class="mb-6 border-b border-gray-200 pb-6">
+        <h2 class="mb-2 text-xl font-bold">Task 3: PUT</h2>
+        <p class="mb-2 text-sm text-gray-600">Replaces post 3 with a complete post object.</p>
+        <button data-task="put" class="rounded border border-gray-400 bg-white px-3 py-2 hover:bg-gray-100 disabled:opacity-50" type="button">Update post 3</button>
+        <pre id="out-put" class="mt-3 overflow-auto rounded border border-gray-300 bg-gray-50 p-3 text-sm whitespace-pre-wrap">No request yet.</pre>
+      </section>
+
+      <section class="mb-6 border-b border-gray-200 pb-6">
+        <h2 class="mb-2 text-xl font-bold">Task 4: PATCH</h2>
+        <p class="mb-2 text-sm text-gray-600">Changes only the title of post 5.</p>
+        <button data-task="patch" class="rounded border border-gray-400 bg-white px-3 py-2 hover:bg-gray-100 disabled:opacity-50" type="button">Patch post 5</button>
+        <p id="confirm-patch" class="mt-3 font-medium" role="status"></p>
+        <pre id="out-patch" class="mt-3 overflow-auto rounded border border-gray-300 bg-gray-50 p-3 text-sm whitespace-pre-wrap">No request yet.</pre>
+      </section>
+
+      <section>
+        <h2 class="mb-2 text-xl font-bold">Task 5: DELETE</h2>
+        <button data-task="delete" class="rounded border border-gray-400 bg-white px-3 py-2 hover:bg-gray-100 disabled:opacity-50" type="button">Delete post 7</button>
+        <pre id="out-delete" class="mt-3 overflow-auto rounded border border-gray-300 bg-gray-50 p-3 text-sm whitespace-pre-wrap">No request yet.</pre>
+      </section>
+    </main>
+
+    <script>
+      const BASE_URL = "https://jsonplaceholder.typicode.com";
+      const JSON_HEADERS = { "Content-Type": "application/json; charset=UTF-8" };
+
+      async function request(method, path, body) {
+        const response = await fetch(`${BASE_URL}${path}`, {
+          method,
+          headers: body ? JSON_HEADERS : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const text = await response.text();
+        return {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          data: text ? JSON.parse(text) : null,
+        };
+      }
+
+      function show(id, method, path, body, result) {
+        const lines = [`${method} ${path}`];
+        if (body) lines.push(`Request body:\n${JSON.stringify(body, null, 2)}`);
+        lines.push(`Status: ${result.status} ${result.statusText}`);
+        lines.push(`Response body:\n${JSON.stringify(result.data, null, 2)}`);
+        document.getElementById(id).textContent = lines.join("\n\n");
+      }
+
+      const tasks = {
+        async "get-all"() {
+          const result = await request("GET", "/posts");
+          const total = result.data.length;
+          result.data = result.data.slice(0, 3);
+          show("out-get", "GET", "/posts", null, result);
+          const output = document.getElementById("out-get");
+          output.textContent = `${output.textContent}\n\n(${total} posts returned, first 3 shown)`;
+        },
+
+        async "get-one"() {
+          show("out-get", "GET", "/posts/5", null, await request("GET", "/posts/5"));
+        },
+
+        async post() {
+          const body = { title: "My new post", body: "Written with fetch.", userId: 1 };
+          const result = await request("POST", "/posts", body);
+          console.log("POST /posts response:", result.data);
+          show("out-post", "POST", "/posts", body, result);
+        },
+
+        async put() {
+          const body = {
+            id: 3,
+            title: "Updated title for post 3",
+            body: "Updated body for post 3.",
+            userId: 1,
+          };
+          show("out-put", "PUT", "/posts/3", body, await request("PUT", "/posts/3", body));
+        },
+
+        async patch() {
+          const body = { title: "Patched title for post 5" };
+          const result = await request("PATCH", "/posts/5", body);
+          const confirmed = result.data?.title === body.title;
+          const message = document.getElementById("confirm-patch");
+          message.textContent = confirmed
+            ? `Confirmed: response title is "${result.data.title}".`
+            : "Not confirmed: response title does not match.";
+          message.className = `mt-3 font-medium ${confirmed ? "text-green-700" : "text-red-700"}`;
+          show("out-patch", "PATCH", "/posts/5", body, result);
+        },
+
+        async delete() {
+          show("out-delete", "DELETE", "/posts/7", null, await request("DELETE", "/posts/7"));
+        },
+      };
+
+      const outputIds = {
+        "get-all": "out-get",
+        "get-one": "out-get",
+        post: "out-post",
+        put: "out-put",
+        patch: "out-patch",
+        delete: "out-delete",
+      };
+
+      document.querySelector("main").addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-task]");
+        if (!button) return;
+
+        const task = button.dataset.task;
+        button.disabled = true;
+        try {
+          await tasks[task]();
+        } catch (error) {
+          document.getElementById(outputIds[task]).textContent = `Request failed: ${error.message}`;
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
